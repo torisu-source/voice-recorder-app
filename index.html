@@ -297,6 +297,17 @@
           <input type="text" id="s-url" placeholder="https://script.google.com/macros/s/..." />
         </div>
 
+        <div style="margin-top:14px; border-top:0.5px solid var(--border); padding-top:14px;">
+          <div class="field">
+            <label>利用者名の管理</label>
+            <div style="display:flex; gap:6px;">
+              <input type="text" id="new-resident" placeholder="名前を追加..." style="flex:1;" />
+              <button onclick="addResident()" style="padding:9px 14px; background:var(--teal); color:#fff; border:none; border-radius:var(--radius-sm); font-size:13px; cursor:pointer; white-space:nowrap;">追加</button>
+            </div>
+          </div>
+          <div id="resident-list" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;"></div>
+        </div>
+
         <div class="setup-tip">
           <div class="setup-tip-title">Apps Script セットアップ方法</div>
           <p>1. 記録先スプレッドシートを開く</p>
@@ -329,7 +340,9 @@
       <div class="row2">
         <div class="field" style="margin:0;">
           <label>利用者名</label>
-          <input type="text" id="resident" placeholder="例：田中 花子" />
+          <select id="resident">
+            <option value="">-- 選択してください --</option>
+          </select>
         </div>
         <div class="field" style="margin:0;">
           <label>カテゴリ</label>
@@ -394,6 +407,61 @@
     function copyCode() {
       navigator.clipboard.writeText(SCRIPT_CODE).then(() => alert('コードをコピーしました'));
     }
+
+    // Resident management
+    const DEFAULT_RESIDENTS = ['山田 花子', '田中 一郎', '佐藤 幸子', '鈴木 正雄', '高橋 美枝'];
+    let residents = JSON.parse(localStorage.getItem('residents') || 'null') || DEFAULT_RESIDENTS;
+
+    function saveResidents() {
+      localStorage.setItem('residents', JSON.stringify(residents));
+    }
+
+    function renderResidents() {
+      const sel = document.getElementById('resident');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">-- 選択してください --</option>';
+      residents.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (name === cur) opt.selected = true;
+        sel.appendChild(opt);
+      });
+
+      const list = document.getElementById('resident-list');
+      list.innerHTML = '';
+      residents.forEach((name, i) => {
+        const tag = document.createElement('div');
+        tag.style.cssText = 'display:flex; align-items:center; gap:4px; background:var(--teal-light); border-radius:20px; padding:4px 10px; font-size:12px; color:var(--teal-dark);';
+        tag.innerHTML = `<span>${name}</span><span onclick="removeResident(${i})" style="cursor:pointer; font-size:14px; line-height:1; color:var(--teal-dark); margin-left:2px;">×</span>`;
+        list.appendChild(tag);
+      });
+    }
+
+    function addResident() {
+      const inp = document.getElementById('new-resident');
+      const name = inp.value.trim();
+      if (!name) return;
+      if (residents.includes(name)) { alert('すでに登録されています'); return; }
+      residents.push(name);
+      saveResidents();
+      renderResidents();
+      inp.value = '';
+    }
+
+    function removeResident(i) {
+      if (!confirm(`「${residents[i]}」を削除しますか？`)) return;
+      residents.splice(i, 1);
+      saveResidents();
+      renderResidents();
+    }
+
+    // Allow Enter key to add resident
+    document.getElementById('new-resident').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addResident();
+    });
+
+    renderResidents();
 
     // Recording
     let recording = false;
